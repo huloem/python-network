@@ -33,7 +33,7 @@ def run_command(command):
         output = subprocess.check_output(
                 command, stderr=subprocess.STDOUT, shell=True)
     except:
-        output = b'Failed to execute command.\r\n'
+        output = b'Failed to execute command.\n'
     return output
 
 def client_handler(client_socket):
@@ -44,7 +44,7 @@ def client_handler(client_socket):
     if len(upload_destination):
         file_buffer = b''
         while True:
-            data = client_socket.recv(1024)
+            data = client_socket.recv(4096)
             if len(data) == 0:
                 break
             else:
@@ -57,21 +57,21 @@ def client_handler(client_socket):
         except:
             client_socket.send("Failed to save file".encode('utf-8'))
     if len(execute):
-        output1 = run_command(execute)
-        client_socket.send(output1)
+        output = run_command(execute)
+        client_socket.send(output)
     if command:
         while True:
-            cmd_buffer = ""
-            cmd_buffer += client_socket.recv(1024).decode('utf-8')
-            output2 = run_command(cmd_buffer)
-            client_socket.send(output2)
+            cmd_buffer = b''
+            cmd_buffer += client_socket.recv(4096)
+            output = run_command(cmd_buffer.decode('utf-8'))
+            client_socket.send(output)
 
 def client_sender(buffer):
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         client.connect((target, port))
         if len(buffer):
-            client.send(buffer.encode('utf-8'))
+            client.send(buffer)
         while True:
             recv_len = 1
             response = b''
@@ -81,11 +81,8 @@ def client_sender(buffer):
                 response += data
                 if recv_len < 4096:
                     break
-            print(response.decode('utf-8'))
+            print(response.decode('utf-8').strip())
             buffer = input()
-            if buffer == "quit":
-                client.send(buffer.encode('utf-8'))
-                break
             client.send(buffer.encode('utf-8'))
     except:
         print("[*] Exception! Exiting.")
@@ -143,7 +140,7 @@ def main():
 
     # listen? or send data received from stdin?
     if not listen and len(target) and port > 0:
-        buffer = input()
+        buffer = input().encode('utf-8')
         client_sender(buffer)
 
     # listen
